@@ -54,7 +54,7 @@ data "aws_availability_zones" "all" {}
 resource "aws_launch_configuration" "webserver_example" {
   image_id        = data.aws_ami.ubuntu.id
   instance_type   = var.instance_type
-  security_groups = [aws_security_group.asg.id]
+  security_groups = ["${var.asg_security_group_id}"]
 
   user_data = <<-EOF
               #!/bin/bash
@@ -93,32 +93,13 @@ data "aws_ami" "ubuntu" {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# CREATE A SECURITY GROUP FOR THE ASG
-# To keep the example simple, we configure the EC2 Instances to allow inbound traffic from anywhere. In real-world
-# usage, you should lock the Instances down so they only allow traffic from trusted sources (e.g. the ELB).
-# ---------------------------------------------------------------------------------------------------------------------
-
-resource "aws_security_group" "asg" {
-  name = "${var.name}-asg"
-}
-
-resource "aws_security_group_rule" "asg_allow_http_inbound" {
-  type              = "ingress"
-  from_port         = var.server_port
-  to_port           = var.server_port
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.asg.id
-}
-
-# ---------------------------------------------------------------------------------------------------------------------
 # CREATE AN ELB TO ROUTE TRAFFIC ACROSS THE ASG
 # ---------------------------------------------------------------------------------------------------------------------
 
 resource "aws_elb" "webserver_example" {
   name               = var.name
   availability_zones = data.aws_availability_zones.all.names
-  security_groups    = [aws_security_group.elb.id]
+  security_groups    = ["${var.elb_security_group_id}"]
 
   listener {
     lb_port           = var.elb_port
@@ -134,33 +115,4 @@ resource "aws_elb" "webserver_example" {
     interval            = 30
     target              = "HTTP:${var.server_port}/"
   }
-}
-
-# ---------------------------------------------------------------------------------------------------------------------
-# CREATE A SECURITY GROUP FOR THE ELB
-# To keep the example simple, we configure the ELB to allow inbound requests from anywhere. We also allow it to make
-# outbound requests to anywhere so it can perform health checks. In real-world usage, you should lock the ELB down
-# so it only allows traffic to/from trusted sources.
-# ---------------------------------------------------------------------------------------------------------------------
-
-resource "aws_security_group" "elb" {
-  name = "${var.name}-elb"
-}
-
-resource "aws_security_group_rule" "elb_allow_http_inbound" {
-  type              = "ingress"
-  from_port         = var.elb_port
-  to_port           = var.elb_port
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = "${aws_security_group.elb.id}"
-}
-
-resource "aws_security_group_rule" "elb_allow_all_outbound" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.elb.id
 }

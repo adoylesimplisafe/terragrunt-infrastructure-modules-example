@@ -32,3 +32,6 @@ variable "elb_port" {
   description = "The port number the ELB should listen on for HTTP requests"
   type        = number
 }
+
+variable "aws_security_group_asg_id" {}
+variable "aws_security_group_elb_id" {}
