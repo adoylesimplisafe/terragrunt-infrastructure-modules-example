@@ -35,3 +35,4 @@ variable "elb_port" {
 
 variable "aws_security_group_asg_id" {}
 variable "aws_security_group_elb_id" {}
+variable "aws_vpc_azs" {}
